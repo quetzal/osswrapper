@@ -38,6 +38,8 @@ void OSSUploadTask::run() {
   AlibabaCloud::OSS::InitiateMultipartUploadRequest initUploadRequest(bucket_name_, object_name_);
   auto uploadIdResult = client_->InitiateMultipartUpload(initUploadRequest);
   auto uploadId = uploadIdResult.result().UploadId();
+  initUploadRequest.MetaData().addHeader("Content-Disposition", "attachment;filename=" + file_name_);
+  initUploadRequest.MetaData().addHeader("mime", "application/x-www-form-urlencoded");
   std::string fileToUpload = local_file_name_;
   int64_t partSize = 100 * 1024;
   AlibabaCloud::OSS::PartList partETagList;
