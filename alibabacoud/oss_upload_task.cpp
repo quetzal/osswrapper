@@ -2,8 +2,8 @@
 #include "oss_entity.h"
 #include "alibabacloud/oss/model/ObjectMetaData.h"
 #include <fstream>
-
 namespace oss_wrapper{
+
 OSSUploadTask::OSSUploadTask(const size_t key,
                              OSSBaseEntity* entity,
                              const std::string& bucket_name,
@@ -33,11 +33,18 @@ void OSSUploadTask::run() {
   auto call_back = std::bind(&OSSUploadTask::progressCallback, this,
                              std::placeholders::_1, std::placeholders::_2,
                              std::placeholders::_3, std::placeholders::_4);
+#if 0
   OSSError error;
 
   AlibabaCloud::OSS::InitiateMultipartUploadRequest initUploadRequest(bucket_name_, object_name_);
+  //file_name_ = "12315";
   initUploadRequest.MetaData().addHeader("Content-Disposition", "attachment;filename=\"" + file_name_ + "\"");
-  initUploadRequest.MetaData().addHeader("mime", "application/x-www-form-urlencoded");
+  //string strMd5 = str.substring(0, file_name_.lastIndexOf("."));
+  std::string contentMd5 =  calculateFileBase64(local_file_name_);
+  std::cout << "contentMd5 =" << contentMd5 << std::endl;
+  initUploadRequest.MetaData().addHeader("Content-Type", "application/x-www-form-urlencoded");
+  initUploadRequest.MetaData().addHeader("Content-Md5", contentMd5);
+  initUploadRequest.MetaData().setContentMd5(contentMd5);
   auto uploadIdResult = client_->InitiateMultipartUpload(initUploadRequest);
   auto uploadId = uploadIdResult.result().UploadId();
   std::string fileToUpload = local_file_name_;
@@ -86,6 +93,35 @@ void OSSUploadTask::run() {
   }
   else {
         error = OSSError(outcome.error().Code(), outcome.error().Message());
+  }
+  entity_->onProgressFinished(key_, error);
+#endif
+  AlibabaCloud::OSS::TransferProgress progress_callback = { call_back, nullptr };
+
+  std::shared_ptr<std::iostream> content = std::make_shared<std::fstream>(local_file_name_, std::ios::in | std::ios::binary);
+  AlibabaCloud::OSS::PutObjectRequest request(bucket_name_, object_name_, content);
+  request.MetaData().addHeader("Content-Disposition", "attachment;filename=\"" + file_name_ + "\"");
+
+  request.MetaData().addHeader("Content-Type", "application/x-www-form-urlencoded");
+
+  //启用CONTENT-MD5
+  request.MetaData().addHeader("disabledMD5", "false");
+  /* 上传文件。*/
+  auto outcome = client_->PutObject(request);
+  OSSError error;
+  if (outcome.isSuccess()) {
+
+      error.code_ = "200";
+      error.message_ = "success";
+  }
+  else
+  {
+      /* 异常处理。*/
+      std::cout << "PutObject fail" <<
+          ",code:" << outcome.error().Code() <<
+          ",message:" << outcome.error().Message() <<
+          ",requestId:" << outcome.error().RequestId() << std::endl;
+      error = OSSError(outcome.error().Code(), outcome.error().Message());
   }
   entity_->onProgressFinished(key_, error);
 }

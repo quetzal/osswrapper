@@ -27,7 +27,6 @@ class OSSUploadTask : public OSSBaseLoadTask {
                 const std::string& local_file_name,
                 const std::string& check_point_path);
   ~OSSUploadTask();
-
   void run() override;
 
  private:
