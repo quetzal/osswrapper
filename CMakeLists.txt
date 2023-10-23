@@ -2,7 +2,7 @@ __tree_add_current(SRC)
 
 set(DEFS OSS_WRAPPER_DLL)
 
-__cc_find(AliyunOss)
+#__cc_find(AliyunOss)
 
 if(NOT TARGET Qt5::Core)
 	__prepare_core_qt5()
@@ -10,7 +10,7 @@ endif()
 
 __add_real_target(ossWrapper dll SOURCE ${SRC}
 							 DEF ${DEFS} 
-							 LIB Qt5::Core AliyunOss
+							 LIB Qt5::Core #AliyunOss
 							 INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/alibabacoud/
 							 )
 
